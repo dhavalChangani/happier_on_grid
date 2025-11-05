@@ -1,0 +1,9 @@
+# OnGrid Client - Required Dependencies
+
+# HTTP Client for API calls
+requests==2.31.0
+
+# Flask for testing API
+flask==3.0.0
+
+python-dotenv==1.2.1
