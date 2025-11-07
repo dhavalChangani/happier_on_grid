@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify
-from ongrid_client import OnGridClient, OnGridException
 import os
+
+from flask import Flask, request, jsonify
+
+from ongrid import OnGridClient, OnGridException
 
 app = Flask(__name__)
 
-# Initialize OnGrid client
 client = OnGridClient(
     community_id=os.getenv("ONGRID_COMMUNITY_ID", "your-community-id-here"),
 )
