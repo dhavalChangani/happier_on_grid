@@ -8,7 +8,13 @@ import requests
 from contextlib import contextmanager
 from typing import Dict, Any, Optional
 
-from ongrid.exceptions import OnGridException, ValidationException
+from ongrid.exceptions import (
+    OnGridException,
+    ValidationException,
+    APIException,
+    AuthenticationException,
+    NetworkException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -107,23 +113,39 @@ class HttpClient:
         try:
             response = requests.request(**request_kwargs)
 
+            if response.status_code == 401 or response.status_code == 403:
+                raise AuthenticationException("Invalid credentials or unauthorized access")
+            
             if response.status_code >= 400:
                 error_msg = f"OnGrid API error: {response.status_code}"
+                response_data = None
                 try:
-                    error_data = response.json()
-                    error_msg = error_data.get("message", error_msg)
-                except:
+                    response_data = response.json()
+                    error_msg = response_data.get("message", error_msg)
+                except ValueError:
                     error_msg = response.text or error_msg
 
                 logger.error(f"API error: {error_msg}")
-                raise OnGridException(error_msg)
+                raise APIException(
+                    error_msg,
+                    status_code=response.status_code,
+                    response_data=response_data,
+                )
 
             return response.json()
 
-        except requests.exceptions.ConnectionError:
-            raise OnGridException("Connection error - Cannot reach OnGrid API")
+        except AuthenticationException:
+            raise
+        except APIException:
+            raise
+        except requests.exceptions.ConnectionError as e:
+            raise NetworkException("Connection error - Cannot reach OnGrid API") from e
+        except requests.exceptions.Timeout as e:
+            raise NetworkException("Request timeout - OnGrid API not responding") from e
         except requests.exceptions.RequestException as e:
-            raise OnGridException(f"Request failed: {str(e)}")
+            raise NetworkException(f"Request failed: {str(e)}") from e
+        except ValueError as e:
+            raise APIException("Invalid JSON response from API") from e
 
     def build_form_data(
         self, required_fields: Dict[str, Any], optional_fields: Dict[str, Any]
@@ -160,15 +182,13 @@ class HttpClient:
         """
         try:
             yield
-        except ValidationException as e:
-            logger.error(f"Validation error: {e}")
+        except (ValidationException, AuthenticationException, APIException, NetworkException):
             raise
-        except OnGridException as e:
-            logger.error(f"Failed to {operation}: {e}")
+        except OnGridException:
             raise
         except Exception as e:
-            logger.exception(f"Unexpected error while {operation}: {e}")
-            raise OnGridException(f"Failed to {operation}: {str(e)}")
+            logger.exception(f"Unexpected error while {operation}")
+            raise OnGridException(f"Failed to {operation}: {str(e)}") from e
 
     def prepare_multiple_files(
         self, file_paths: Dict[str, Optional[str]]

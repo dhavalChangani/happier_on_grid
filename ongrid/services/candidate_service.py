@@ -67,15 +67,13 @@ class CandidateService:
             logger.info(f"Individual onboarded successfully: ID {response.get('id')}")
             return response
 
-        except ValidationException as e:
-            logger.error(f"Validation error: {e}")
+        except ValidationException:
             raise
-        except OnGridException as e:
-            logger.error(f"Onboarding failed: {e}")
+        except OnGridException:
             raise
         except Exception as e:
-            logger.error(f"Unexpected error during onboarding: {e}")
-            raise OnGridException(f"Onboarding failed: {str(e)}")
+            logger.exception("Unexpected error during onboarding")
+            raise OnGridException(f"Onboarding failed: {str(e)}") from e
 
     def onboard_and_initiate_verifications(
         self,
@@ -138,15 +136,13 @@ class CandidateService:
 
             return response
 
-        except ValidationException as e:
-            logger.error(f"Validation error: {e}")
+        except ValidationException:
             raise
-        except OnGridException as e:
-            logger.error(f"Onboarding and verification initiation failed: {e}")
+        except OnGridException:
             raise
         except Exception as e:
-            logger.error(f"Unexpected error during onboarding and verification: {e}")
-            raise OnGridException(f"Onboarding and verification failed: {str(e)}")
+            logger.exception("Unexpected error during onboarding and verification")
+            raise OnGridException(f"Onboarding and verification failed: {str(e)}") from e
 
     def _build_onboard_payload(self, candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         """
