@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, request, jsonify
 
-from ongrid import OnGridClient, OnGridException
+from ongrid import OnGridClient
 
 app = Flask(__name__)
 
