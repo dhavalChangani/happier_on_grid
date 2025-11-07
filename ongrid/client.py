@@ -3,7 +3,7 @@
 import logging
 import os
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 
 from ongrid.exceptions import OnGridException
 from ongrid.http_client import HttpClient
@@ -16,6 +16,28 @@ from ongrid.services import (
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _wrap_response(func: Callable) -> Callable:
+    """
+    Wrapper function to standardize API responses.
+
+    Success responses: {"success": True, "data": {}}
+    Error responses: {"success": False, "message": "error message"}
+
+    Args:
+        func: Function to wrap
+
+    Returns:
+        Wrapped function with standardized response format
+    """
+    def wrapper(*args, **kwargs) -> Dict[str, Any]:
+        try:
+            data = func(*args, **kwargs)
+            return {"success": True, "data": data}
+        except OnGridException as e:
+            return {"success": False, "message": str(e)}
+    return wrapper
 
 
 class OnGridClient:
@@ -62,6 +84,7 @@ class OnGridClient:
 
         logger.info("OnGrid client initialized")
 
+    @_wrap_response
     def onboard_candidate(self, candidate_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Onboard an individual in the OnGrid community.
@@ -70,10 +93,11 @@ class OnGridClient:
             candidate_data: Dictionary containing candidate information
 
         Returns:
-            API response containing individual details
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
         """
         return self.candidates.onboard_candidate(candidate_data)
 
+    @_wrap_response
     def onboard_and_initiate_verifications(
         self,
         candidate_data: Dict[str, Any],
@@ -87,12 +111,13 @@ class OnGridClient:
             verifications: List of verification objects to initiate
 
         Returns:
-            API response containing individual and verification details
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
         """
         return self.candidates.onboard_and_initiate_verifications(
             candidate_data, verifications
         )
 
+    @_wrap_response
     def add_document(
         self,
         individual_id: int,
@@ -100,9 +125,15 @@ class OnGridClient:
         file_path: str,
         body: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Add a document to individual record."""
+        """
+        Add a document to individual record.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.documents.add_document(individual_id, doc_type, file_path, body)
 
+    @_wrap_response
     def add_pan_document(
         self,
         individual_id: int,
@@ -112,7 +143,12 @@ class OnGridClient:
         legal_guardian_name: Optional[str] = None,
         dob: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add a PAN document to individual record."""
+        """
+        Add a PAN document to individual record.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.documents.add_pan_document(
             individual_id,
             file_path,
@@ -122,6 +158,7 @@ class OnGridClient:
             dob,
         )
 
+    @_wrap_response
     def update_pan_document(
         self,
         individual_id: int,
@@ -132,7 +169,12 @@ class OnGridClient:
         legal_guardian_name: Optional[str] = None,
         dob: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Update an existing PAN document."""
+        """
+        Update an existing PAN document.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.documents.update_pan_document(
             individual_id,
             document_id,
@@ -143,6 +185,7 @@ class OnGridClient:
             dob,
         )
 
+    @_wrap_response
     def add_education_document(
         self,
         individual_id: int,
@@ -160,7 +203,12 @@ class OnGridClient:
         issue_date: Optional[str] = None,
         document_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add an education document to individual record."""
+        """
+        Add an education document to individual record.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.documents.add_education_document(
             individual_id,
             file_path,
@@ -178,6 +226,7 @@ class OnGridClient:
             document_id,
         )
 
+    @_wrap_response
     def add_employment_record(
         self,
         individual_id: int,
@@ -203,7 +252,12 @@ class OnGridClient:
         hr_phone: Optional[str] = None,
         hr_phone_country_code: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Add an employment record to individual record."""
+        """
+        Add an employment record to individual record.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.documents.add_employment_record(
             individual_id,
             name_as_per_employer_records,
@@ -229,34 +283,59 @@ class OnGridClient:
             hr_phone_country_code,
         )
 
+    @_wrap_response
     def request_pan_verification(
         self, individual_id: int, document_id: int
     ) -> Dict[str, Any]:
-        """Request PAN verification for an individual."""
+        """
+        Request PAN verification for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.verifications.request_pan_verification(individual_id, document_id)
 
+    @_wrap_response
     def request_education_verification(
         self, individual_id: int, education_document_id: int
     ) -> Dict[str, Any]:
-        """Request education verification for an individual."""
+        """
+        Request education verification for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.verifications.request_education_verification(
             individual_id, education_document_id
         )
 
+    @_wrap_response
     def request_employment_verification(
         self, individual_id: int, employment_record_id: int
     ) -> Dict[str, Any]:
-        """Request employment verification for an individual."""
+        """
+        Request employment verification for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.verifications.request_employment_verification(
             individual_id, employment_record_id
         )
 
+    @_wrap_response
     def request_employment_history_check(
         self, individual_id: int, uans: List[str]
     ) -> Dict[str, Any]:
-        """Request employment history check for an individual."""
+        """
+        Request employment history check for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.verifications.request_employment_history_check(individual_id, uans)
 
+    @_wrap_response
     def request_prc(
         self,
         individual_id: int,
@@ -274,7 +353,12 @@ class OnGridClient:
         end_year_of_association: Optional[int] = None,
         individual_designation: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Request a Professional Reference Check for an individual."""
+        """
+        Request a Professional Reference Check for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.verifications.request_prc(
             individual_id,
             schema_id,
@@ -292,28 +376,52 @@ class OnGridClient:
             individual_designation,
         )
 
+    @_wrap_response
     def get_pan_verification_status(
         self, individual_id: int, request_id: int
     ) -> Dict[str, Any]:
-        """Get PAN verification status for an individual."""
+        """
+        Get PAN verification status for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.status.get_pan_verification_status(individual_id, request_id)
 
+    @_wrap_response
     def get_education_verification_status(
         self, individual_id: int, request_id: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Get education verification status for an individual."""
+        """
+        Get education verification status for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.status.get_education_verification_status(individual_id, request_id)
 
+    @_wrap_response
     def get_employment_verification_status(
         self, individual_id: int, request_id: int
     ) -> Dict[str, Any]:
-        """Get employment verification status for an individual."""
+        """
+        Get employment verification status for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.status.get_employment_verification_status(individual_id, request_id)
 
+    @_wrap_response
     def get_professional_reference_check_status(
         self, individual_id: int, request_id: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Get professional reference check status for an individual."""
+        """
+        Get professional reference check status for an individual.
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
         return self.status.get_professional_reference_check_status(
             individual_id, request_id
         )
