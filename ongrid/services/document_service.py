@@ -3,11 +3,12 @@
 import logging
 import os
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from ongrid.enums import VerificationDocType
 from ongrid.exceptions import ValidationException
 from ongrid.http_client import HttpClient
+from ongrid import validators
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,28 @@ class DocumentService:
 
         Returns:
             API response dictionary
+
+        Raises:
+            ValidationException: If validation fails
         """
+        validation_errors = []
+
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(validators.validate_file_path(file_path))
+        validation_errors.extend(validators.validate_pan_number(document_uid))
+        validation_errors.extend(
+            validators.validate_required_string(name_as_per_document, "name_as_per_document")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(legal_guardian_name, "legal_guardian_name")
+        )
+        validation_errors.extend(validators.validate_date_format(dob, "dob"))
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         body = self.http.build_form_data(
             required_fields={
                 "documentUID": document_uid,
@@ -142,6 +164,27 @@ class DocumentService:
             OnGridException: If request fails
             ValidationException: If validation fails
         """
+        validation_errors = []
+
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(document_id, "document_id")
+        )
+        validation_errors.extend(validators.validate_file_path(file_path))
+        validation_errors.extend(validators.validate_pan_number(document_uid))
+        validation_errors.extend(
+            validators.validate_required_string(name_as_per_document, "name_as_per_document")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(legal_guardian_name, "legal_guardian_name")
+        )
+        validation_errors.extend(validators.validate_date_format(dob, "dob"))
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("update PAN document"):
             endpoint = f"/app/v1/individual/{individual_id}/doc/pan/{document_id}"
 
@@ -218,28 +261,49 @@ class DocumentService:
             OnGridException: If request fails
             ValidationException: If validation fails
         """
-        valid_levels = [
-            "NO_EDUCATION",
-            "LESS_THEN_FIFTH_STD",
-            "FIFTH_STD",
-            "EIGHT_STD",
-            "TENTH_STD",
-            "TWELFTH_STD",
-            "DIPLOMA",
-            "GRADUATE",
-            "PROFESSIONAL_COURSE",
-            "MASTERS",
-            "PHD",
-            "POST_DOC",
-            "POT_GRADUATE_DIPLOMA",
-            "OTHER",
-            "NA",
-        ]
+        validation_errors = []
 
-        if level not in valid_levels:
-            raise ValidationException(
-                f"level must be one of: {', '.join(valid_levels)}"
-            )
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(validators.validate_file_path(file_path))
+        validation_errors.extend(validators.validate_education_level(level))
+        validation_errors.extend(
+            validators.validate_required_string(name_of_institute, "name_of_institute")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(degree, "degree")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(name_as_per_document, "name_as_per_document")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(registration_number, "registration_number")
+        )
+        validation_errors.extend(
+            validators.validate_year(year_of_passing, "year_of_passing")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(field_of_study, "field_of_study")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(duration_in_months, "duration_in_months")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(grade, "grade")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(name_of_board_university, "name_of_board_university")
+        )
+        validation_errors.extend(
+            validators.validate_date_format(issue_date, "issue_date")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(document_id, "document_id")
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
 
         body = self.http.build_form_data(
             required_fields={
@@ -330,6 +394,77 @@ class DocumentService:
             OnGridException: If request fails
             ValidationException: If validation fails
         """
+        validation_errors = []
+
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(name_as_per_employer_records, "name_as_per_employer_records")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(employer_name, "employer_name")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(employment_record_id, "employment_record_id")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(employee_id, "employee_id")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(last_designation, "last_designation")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(job_description, "job_description")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(last_working_city, "last_working_city")
+        )
+        validation_errors.extend(
+            validators.validate_date_format(joining_date, "joining_date")
+        )
+        validation_errors.extend(
+            validators.validate_date_format(last_working_date, "last_working_date")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(annual_compensation, "annual_compensation")
+        )
+
+        if salaryslip_path:
+            validation_errors.extend(validators.validate_file_path(salaryslip_path))
+        if appointmentletter_path:
+            validation_errors.extend(validators.validate_file_path(appointmentletter_path))
+        if experienceletter_path:
+            validation_errors.extend(validators.validate_file_path(experienceletter_path))
+
+        validation_errors.extend(
+            validators.validate_optional_string(manager_name, "manager_name")
+        )
+        validation_errors.extend(
+            validators.validate_email(manager_email, "manager_email")
+        )
+        validation_errors.extend(
+            validators.validate_phone_number(manager_phone, "manager_phone")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(manager_phone_country_code, "manager_phone_country_code", max_length=5)
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(hr_name, "hr_name")
+        )
+        validation_errors.extend(
+            validators.validate_email(hr_email, "hr_email")
+        )
+        validation_errors.extend(
+            validators.validate_phone_number(hr_phone, "hr_phone")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(hr_phone_country_code, "hr_phone_country_code", max_length=5)
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("add employment record"):
             endpoint = f"/app/v1/individual/{individual_id}/doc/emprecord"
 

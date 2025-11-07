@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 
 from ongrid.exceptions import ValidationException
 from ongrid.http_client import HttpClient
+from ongrid import validators
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,20 @@ class VerificationService:
             API response dictionary
 
         Raises:
+            ValidationException: If validation fails
             OnGridException: If request fails
         """
+        validation_errors = []
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(document_id, "document_id")
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("request PAN verification"):
             endpoint = f"/app/v1/individual/{individual_id}/panv"
 
@@ -67,8 +80,20 @@ class VerificationService:
             API response dictionary
 
         Raises:
+            ValidationException: If validation fails
             OnGridException: If request fails
         """
+        validation_errors = []
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(education_document_id, "education_document_id")
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("request education verification"):
             endpoint = f"/app/v1/individual/{individual_id}/eduv"
 
@@ -99,8 +124,20 @@ class VerificationService:
             API response dictionary
 
         Raises:
+            ValidationException: If validation fails
             OnGridException: If request fails
         """
+        validation_errors = []
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(employment_record_id, "employment_record_id")
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("request employment verification"):
             endpoint = f"/app/v1/individual/{individual_id}/empv"
 
@@ -131,16 +168,24 @@ class VerificationService:
             API response dictionary
 
         Raises:
-            OnGridException: If request fails
             ValidationException: If validation fails
+            OnGridException: If request fails
         """
+        validation_errors = []
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+
+        if not uans or not isinstance(uans, list):
+            validation_errors.append("uans must be a non-empty list of UAN numbers")
+        elif len(uans) == 0:
+            validation_errors.append("uans list cannot be empty")
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("request employment history check"):
             endpoint = f"/app/v1/individual/{individual_id}/ehc"
-
-            if not uans or not isinstance(uans, list):
-                raise ValidationException(
-                    "uans must be a non-empty list of UAN numbers"
-                )
 
             payload = {"uans": uans}
 
@@ -194,16 +239,62 @@ class VerificationService:
             API response dictionary
 
         Raises:
-            OnGridException: If request fails
             ValidationException: If validation fails
+            OnGridException: If request fails
         """
+        validation_errors = []
+
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+        validation_errors.extend(
+            validators.validate_positive_integer(schema_id, "schema_id")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(reference_provider_name, "reference_provider_name")
+        )
+        validation_errors.extend(
+            validators.validate_email(reference_provider_email, "reference_provider_email")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(organisation, "organisation")
+        )
+        validation_errors.extend(
+            validators.validate_required_string(designation, "designation")
+        )
+
+        if reference_type not in ["Academic", "Professional"]:
+            validation_errors.append(
+                "reference_type must be either 'Academic' or 'Professional'"
+            )
+
+        if not isinstance(reporting_manager, bool):
+            validation_errors.append("reporting_manager must be a boolean value")
+
+        validation_errors.extend(
+            validators.validate_positive_integer(reference_provider_id, "reference_provider_id")
+        )
+        validation_errors.extend(
+            validators.validate_phone_number(reference_provider_phone, "reference_provider_phone")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(reference_provider_phone_country_code, "reference_provider_phone_country_code", max_length=5)
+        )
+        validation_errors.extend(
+            validators.validate_year(start_year_of_association, "start_year_of_association")
+        )
+        validation_errors.extend(
+            validators.validate_year(end_year_of_association, "end_year_of_association")
+        )
+        validation_errors.extend(
+            validators.validate_optional_string(individual_designation, "individual_designation")
+        )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
         with self.http.handle_api_exceptions("request PRC"):
             endpoint = f"/app/v1/individual/{individual_id}/prc"
-
-            if reference_type not in ["Academic", "Professional"]:
-                raise ValidationException(
-                    "reference_type must be either 'Academic' or 'Professional'"
-                )
 
             payload = self.http.build_form_data(
                 required_fields={
