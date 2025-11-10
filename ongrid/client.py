@@ -3,9 +3,10 @@
 import logging
 import os
 
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable
 
-from ongrid.exceptions import OnGridException
+from ongrid.exceptions import OnGridException, ValidationException
 from ongrid.http_client import HttpClient
 from ongrid.services import (
     CandidateService,
@@ -425,3 +426,59 @@ class OnGridClient:
         return self.status.get_professional_reference_check_status(
             individual_id, request_id
         )
+
+    @staticmethod
+    def handle_activity_callback(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process and standardize OnGrid activity callback webhook payload.
+
+        Args:
+            payload: Raw webhook payload from OnGrid
+
+        Returns:
+            Standardized response for DB integration containing only verification status:
+            {
+                "success": True,
+                "data": {
+                    "activity_type": str (e.g., "PANVRequested", "PANVCompleted", "EDVRequested"),
+                    "individual_id": int,
+                    "request_id": int,
+                    "employee_id": str,
+                    "status": str (e.g., "Verified", "Success", "Failed", "UnableToVerify"),
+                    "timestamp": str (ISO 8601)
+                }
+            }
+
+        Raises:
+            ValidationException: If required fields are missing or invalid
+        """
+        try:
+            created_timestamp = payload.get("created")
+            if not isinstance(created_timestamp, (int, float)):
+                raise ValidationException(
+                    "Invalid created timestamp format",
+                    field_errors={"created": "Must be a numeric timestamp in milliseconds"}
+                )
+            timestamp_iso = datetime.fromtimestamp(created_timestamp / 1000).isoformat()
+
+            verification_status = {
+                "activity_type": payload.get("activityType"),
+                "individual_id": payload.get("individualId"),
+                "request_id": payload.get("requestId"),
+                "employee_id": payload.get("employeeId"),
+                "status": payload.get("remark"),
+                "timestamp": timestamp_iso
+            }
+
+            logger.info(
+                f"Verification status update: {verification_status['activity_type']} "
+                f"for individual {verification_status['individual_id']} - {verification_status['status']}"
+            )
+
+            return {"success": True, "data": verification_status}
+
+        except (ValueError, TypeError) as e:
+            raise ValidationException(
+                f"Invalid data format in webhook payload: {str(e)}",
+                field_errors={"payload": str(e)}
+            )
