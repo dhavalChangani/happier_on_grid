@@ -10,9 +10,8 @@ Tests cover all endpoints with various scenarios including:
 """
 
 import json
-import os
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from app import app
 
