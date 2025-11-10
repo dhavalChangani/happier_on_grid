@@ -13,6 +13,7 @@ from ongrid.services import (
     DocumentService,
     VerificationService,
     StatusService,
+    InsufficientService,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +83,7 @@ class OnGridClient:
         self.documents = DocumentService(self.http)
         self.verifications = VerificationService(self.http)
         self.status = StatusService(self.http)
+        self.insufficiencies = InsufficientService(self.http)
 
         logger.info("OnGrid client initialized")
 
@@ -482,3 +484,31 @@ class OnGridClient:
                 f"Invalid data format in webhook payload: {str(e)}",
                 field_errors={"payload": str(e)}
             )
+
+    @_wrap_response
+    def get_insufficiencies(
+        self,
+        individual_id: Optional[int] = None,
+        request_id: Optional[int] = None,
+        page_no: int = 0,
+        page_size: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Get list of insufficiencies based on criteria.
+
+        Args:
+            individual_id: Individual ID (optional)
+            request_id: Request ID (optional)
+            page_no: Page number (default: 0)
+            page_size: Size of each page, range 1-500 (default: 100)
+
+        Returns:
+            Standardized response: {"success": True, "data": {}} or {"success": False, "message": ""}
+        """
+        return self.insufficiencies.get_insufficiencies(
+            community_id=int(self.community_id),
+            individual_id=individual_id,
+            request_id=request_id,
+            page_no=page_no,
+            page_size=page_size,
+        )

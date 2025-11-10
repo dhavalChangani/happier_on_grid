@@ -16,7 +16,8 @@ def home():
         "message": "OnGrid Test API",
         "endpoints": [
             "POST /onboard - Onboard a candidate",
-            "POST /onboard_and_initiate_verification - Onboard and initiate verification for a candidate"]
+            "POST /onboard_and_initiate_verification - Onboard and initiate verification for a candidate",
+            "GET /insufficiencies - Get list of insufficiencies"]
     })
 
 
@@ -119,6 +120,33 @@ def callback():
     # Log the callback data
     print("Received OnGrid Callback:", data)
     return jsonify({"status": "Callback received"}), 200
+
+@app.route('/insufficiencies', methods=['GET'])
+def get_insufficiencies():
+    """
+    Get list of insufficiencies
+    
+    Query parameters:
+    - individual_id: Individual ID (optional)
+    - request_id: Request ID (optional)
+    - page_no: Page number (default: 0)
+    - page_size: Size of each page, range 1-500 (default: 100)
+    """
+    individual_id = request.args.get('individual_id', type=int)
+    request_id = request.args.get('request_id', type=int)
+    page_no = request.args.get('page_no', type=int, default=0)
+    page_size = request.args.get('page_size', type=int, default=100)
+    
+    try:
+        result = client.get_insufficiencies(
+            individual_id=individual_id,
+            request_id=request_id,
+            page_no=page_no,
+            page_size=page_size
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
