@@ -104,3 +104,83 @@ class InsufficientService:
             )
 
             return response
+
+    def provide_insufficiency_resolution_data(
+        self,
+        individual_id: int,
+        insufficiency_resolution_data: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Provide data for insufficiency resolution for a particular individual.
+
+        Args:
+            individual_id: Individual's unique ID at OnGrid
+            insufficiency_resolution_data: List of insufficiency resolution objects, each containing:
+                - requestId: Request ID (required)
+                - data: Data object with comments and textDataMap (optional)
+                - documents: File upload object (optional)
+
+        Returns:
+            List of resolution responses, each containing:
+                - requestId: Request ID
+                - offeringCode: Offering code
+                - state: State of the request
+                - success: Success status
+                - failureReason: Failure reason if unsuccessful
+
+        Raises:
+            ValidationException: If validation fails
+            OnGridException: If request fails
+        """
+        validation_errors = []
+        validation_errors.extend(
+            validators.validate_positive_integer(individual_id, "individual_id")
+        )
+
+        if not insufficiency_resolution_data:
+            validation_errors.append("insufficiency_resolution_data cannot be empty")
+
+        if not isinstance(insufficiency_resolution_data, list):
+            validation_errors.append("insufficiency_resolution_data must be a list")
+
+        for idx, item in enumerate(insufficiency_resolution_data):
+            if not isinstance(item, dict):
+                validation_errors.append(
+                    f"insufficiency_resolution_data[{idx}] must be a dictionary"
+                )
+                continue
+
+            if "requestId" not in item:
+                validation_errors.append(
+                    f"insufficiency_resolution_data[{idx}] missing required field: requestId"
+                )
+
+        if validation_errors:
+            raise ValidationException(f"Validation failed: {'; '.join(validation_errors)}")
+
+        with self.http.handle_api_exceptions("provide insufficiency resolution data"):
+            endpoint = f"/app/v1/individual/{individual_id}/insufficiency/data"
+
+            payload = {"insuffResolutionData": insufficiency_resolution_data}
+
+            logger.info(
+                f"Providing insufficiency resolution data for individual {individual_id}, "
+                f"{len(insufficiency_resolution_data)} resolution(s)"
+            )
+
+            response = self.http.make_request(
+                method="POST", endpoint=endpoint, data=payload
+            )
+
+            if not isinstance(response, list):
+                logger.warning(
+                    f"Expected list response but got {type(response)}, wrapping in list"
+                )
+                response = [response] if response else []
+
+            logger.info(
+                f"Insufficiency resolution data provided for individual {individual_id}, "
+                f"response count: {len(response)}"
+            )
+
+            return response

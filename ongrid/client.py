@@ -512,3 +512,24 @@ class OnGridClient:
             page_no=page_no,
             page_size=page_size,
         )
+
+    @_wrap_response
+    def provide_insufficiency_resolution_data(
+        self,
+        individual_id: int,
+        insufficiency_resolution_data: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Provide data for insufficiency resolution for a particular individual.
+
+        Args:
+            individual_id: Individual's unique ID at OnGrid
+            insufficiency_resolution_data: List of insufficiency resolution objects
+
+        Returns:
+            Standardized response: {"success": True, "data": []} or {"success": False, "message": ""}
+        """
+        return self.insufficiencies.provide_insufficiency_resolution_data(
+            individual_id=individual_id,
+            insufficiency_resolution_data=insufficiency_resolution_data,
+        )
